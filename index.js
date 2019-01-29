@@ -6,8 +6,7 @@ client.on('ready', () => {
 });
 
 client.on('message', function(message){
-  if (message.channel.id === '539537645777321994') {
-	  args = message.content.split(" ");
+	args = message.content.split(" ");
     switch (args[0]) {
 		case '!ping':
 			message.channel.send("Hi " + message.member.nickname + "!");
@@ -45,7 +44,7 @@ client.on('message', function(message){
 			message.channel.send("https://www.haslett.k12.mi.us/hhs");
 			break;
 	}
-  }
+  
 });
    
 client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
