@@ -10,4 +10,4 @@ Enter the repository contents into this folder, and run this to start the bot:
 ```
 nodemon --inspect index.js
 ```
-Typing `rs` restarts the bot.
+Typing `rs` or making any changes to `index.js` restarts the bot.
