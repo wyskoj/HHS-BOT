@@ -1,0 +1,30 @@
+{
+  "name": "hhs-bot",
+  "version": "1.0.0",
+  "description": "The Haslett High School Bot.",
+  "main": "index.js",
+  "dependencies": {
+    "auth": "^0.0.9",
+    "discord.io": "^2.5.3",
+    "discord.js": "^11.4.2",
+    "fs": "^0.0.1-security",
+    "http": "^0.0.0",
+    "random-number": "^0.0.9",
+    "request": "^2.88.0",
+    "winston": "^3.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wyskoj/HHS-BOT.git"
+  },
+  "author": "Jacob Wysko & Julian Lachniet",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/wyskoj/HHS-BOT/issues"
+  },
+  "homepage": "https://github.com/wyskoj/HHS-BOT#readme"
+}
