@@ -1,0 +1,41 @@
+# The syntax for alias is:
+# original:alias1,alias2
+#
+# For example:
+# english11honors:britlit,english11h
+
+apcalculus:apcalc,calc,apcalcab,calcab,calc1
+apcomputerscience:apcs,cs,computerscience,apcompsci
+apenglish:apeng
+apgovernment:apgov
+apstatistics:apstat,stat,apstats
+apworldhistory:apworld
+asl:americansignlanguage,signlanguage
+advancedprogramming
+art
+band:windensemble,symphonicband,marchingband
+biology:bio
+broadcastjournalism:broadcast
+careersineducation:cie
+choir:chorale,choral
+civicsecon:civics,econ,economics
+english10honors:americanliterature,americanlit,amlit,english10h,eng10h
+english11:eng11
+english11honors:britishliterature,britishlit,britliterature,britlit,eng11h,english11h
+english12:eng12
+english9:eng9
+fst:functionsstatisticandstrigonometry
+geometry
+latin4:latin
+personalfinance
+physicalscience
+physics
+precalculus:pdm,precalc,precalculusandderivedmathematics
+programmingb
+spanish:espanol
+spanish2:espanol2
+spanish4:espanol4
+ushistory:ushist
+weighttraining:weight
+worldhistory:world
+worldreligions:religions

@@ -76,3 +76,9 @@ typings/
 .fusebox/
 
 package-lock.json
+.idea/workspace.xml
+.idea/vcs.xml
+.idea/modules.xml
+.idea/misc.xml
+.idea/HHS-BOT.iml
+.idea/jsLibraryMappings.xml
