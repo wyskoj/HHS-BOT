@@ -4,6 +4,7 @@ To start HHS-BOT you will need to have Node and npm installed.
 Then, run the following commands in a folder.
 ```
 npm i discord.js
+npm i regex
 npm i -g nodemon
 npm i
 ```
