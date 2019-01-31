@@ -71,6 +71,66 @@ client.on('message', function(message) {
                         message.reply("please add your classes after `!classes`, separated by commas.");
                     }
                     break;
+                case 'addclass':
+                    let classMatch = /^\s*!addclass\s(.+)/.exec(message.content);
+                    if (classMatch !== null) {
+                        let userClass = classMatch[1];
+                        userClass = userClass.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+                        let allClasses = getAllClassesNamesSystemSorted(message);
+                        userClass = replaceAlias(userClass);
+                        let allClassesSimplified = [];
+                        for (let i = 0; i < allClasses.length; i++) {
+                            allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+                        }
+                        if (allClassesSimplified.indexOf(userClass) !== -1) { // If a valid class
+                            let classIndex = allClassesSimplified.indexOf(userClass);
+                            let classID = getAllClassesIDsSystemSorted(message)[classIndex];
+                            let classRole = message.guild.roles.find(r => r.id === classID.toString());
+                            if (message.member.roles.has(classRole.id)) {
+                                message.reply("you are already assigned to " + classRole.name + ".");
+                            } else {
+                                message.member.addRole(classRole).catch(console.error);
+                                message.reply("you have been assigned to " + classRole.name + ".");
+                            }
+                        } else {
+                            message.reply("I didn't recognize that class.");
+                        }
+                    } else {
+                        message.reply("please specify a class.");
+                    }
+                    break;
+                case 'removeclass':
+                    let classRemove = /^\s*!removeclass\s(.+)/.exec(message.content);
+                    if (classRemove !== null) {
+                        let userClass = classRemove[1];
+                        userClass = userClass.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+                        let allClasses = getAllClassesNamesSystemSorted(message);
+                        userClass = replaceAlias(userClass);
+                        let allClassesSimplified = [];
+                        for (let i = 0; i < allClasses.length; i++) {
+                            allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+                        }
+                        if (allClassesSimplified.indexOf(userClass) !== -1) { // If a valid class
+                            let classIndex = allClassesSimplified.indexOf(userClass);
+                            let classID = getAllClassesIDsSystemSorted(message)[classIndex];
+                            let classRole = message.guild.roles.find(r => r.id === classID.toString());
+                            if (!message.member.roles.has(classRole.id)) {
+                                message.reply("you aren't assigned to " + classRole.name + ".");
+                            } else {
+                                message.member.removeRole(classRole).catch(console.error);
+                                message.reply("you have been removed from " + classRole.name + ".");
+                            }
+                        } else {
+                            message.reply("I didn't recognize that class.");
+                        }
+                    } else {
+                        message.reply("please specify a class.");
+                    }
+                    break;
+                case 'removeallclasses':
+
+                    break;
+
             }
         }
     }
@@ -137,5 +197,30 @@ function replaceAliases(userInput) {
     return replaced;
 }
 
-function giveRole(roleID) {}
+function replaceAlias(studentClass) {
+    let replaced = studentClass;
+    let buffer = fs.readFileSync('aliases.db');
+    let lines = buffer.toString().split("\n");
+    let commentLineRegex = new RegExp('^\\s*#');
+    let aliasRegex = new RegExp('([a-z0-9]+):([a-z0-9,]+)');
+    let masterTarget = [];
+    let masterAliases = [];
+    for (let i = 0; i < lines.length; i++) { // For each alias in the file
+        if (!commentLineRegex.test(lines[i]) && aliasRegex.test(lines[i])) { // If the line isn't a comment and is a valid alias
+            let data = aliasRegex.exec(lines[i]); // Execute RegExp
+            masterTarget.push(data[1]); // The target "apcalculus"
+            masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
+        }
+    }
+        for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases
+            for (let k = 0; k < masterAliases[j].length; k++) { // For each alias
+                if (masterAliases[j][k] === replaced) { // If the thing the user entered needs to be replaced
+                    replaced = masterTarget[j]; // masterAliases's & masterTarget's have aligning indices
+                }
+            }
+        }
+    return replaced;
+}
+
+
 client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
