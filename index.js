@@ -12,8 +12,8 @@ client.on('message', function (message) {
       message.channel.send("Hi " + message.member.nickname + "!");
       break;
     case '!addrole':
-      let roleToAdd = message.guild.roles.find(r => r.name === message.content.substring(9));
-      try {
+	  try {
+      let roleToAdd = message.guild.roles.find(r => r.name === message.content.substring(9));    
         if (message.member.roles.has(roleToAdd.id)) {
           message.reply("you already have the *" + roleToAdd.name + "* role.");
         } else {
@@ -26,8 +26,8 @@ client.on('message', function (message) {
       }
       break;
     case '!removerole':
-      let roleToRemove = message.guild.roles.find(r => r.name === message.content.substring(12));
-      try {
+	  try {
+      let roleToRemove = message.guild.roles.find(r => r.name === message.content.substring(12));     
         if (message.member.roles.has(roleToRemove.id)) {
           const guildMember = message.member;
           guildMember.removeRole(roleToRemove);
