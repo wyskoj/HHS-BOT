@@ -170,6 +170,9 @@ client.on('message', function(message) {
                         message.channel.send("`!testlevenshtein string1|string2`");
                     }
                     break;
+                case 'ping':
+                    message.channel.send("Pong!");
+                    break;
             }
         }
     }
