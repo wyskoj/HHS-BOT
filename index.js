@@ -2,13 +2,15 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const client = new Discord.Client();
 
+const LEVENSHTEIN_DISTANCE_TOLERANCE = 2;
+
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
 client.on('message', function(message) {
     if (/^!\S+/g.test(message.content)) {
-        if (message.channel.id === "539537645777321994") { // #bot-testing
+        if (message.channel.id === "539537645777321994" || message.channel.id === "539594747451277383") { // #bot-testing
             let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
             let command = match[1];
             switch (command) {
@@ -41,7 +43,11 @@ client.on('message', function(message) {
                             for (let i = 0; i < userClasses.length; i++) {
                                 userClassesSimplified.push(userClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                             }
-                            userClassesSimplified = replaceAliases(userClassesSimplified);
+                            // userClassesSimplified = replaceAliases(userClassesSimplified);
+                            // userClassesSimplified = levensteinReplace(userClassesSimplified, message);
+
+                            userClassesSimplified = replaceAliasesAndMistakes(userClassesSimplified, message);
+
                             /* BEGIN ROLE ASSIGNMENT */
                             let indicesOfRolesToAssign = [];
                             for (let i = 0; i < userClassesSimplified.length; i++) {
@@ -65,7 +71,12 @@ client.on('message', function(message) {
                                     assignedClasses += ", ";
                                 }
                             }
-                            message.reply("you have been assigned to these classes: " + assignedClasses + ".");
+                            if (rolesToAssign.length === 0) {
+                                message.reply("you were not added to any classes.");
+                            } else {
+                                message.reply("you have been assigned to these classes: " + assignedClasses + ".");
+
+                            }
                         }
                     } else {
                         message.reply("please add your classes after `!classes`, separated by commas.");
@@ -75,15 +86,16 @@ client.on('message', function(message) {
                     let classMatch = /^\s*!addclass\s(.+)/.exec(message.content);
                     if (classMatch !== null) {
                         let userClass = classMatch[1];
-                        userClass = userClass.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-                        let allClasses = getAllClassesNamesSystemSorted(message);
-                        userClass = replaceAlias(userClass);
+                        let arrayed = [];
+                        arrayed.push(userClass);
+                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
                         let allClassesSimplified = [];
+                        let allClasses = getAllClassesNamesSystemSorted(message);
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
-                        if (allClassesSimplified.indexOf(userClass) !== -1) { // If a valid class
-                            let classIndex = allClassesSimplified.indexOf(userClass);
+                        if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
+                            let classIndex = allClassesSimplified.indexOf(fixed);
                             let classID = getAllClassesIDsSystemSorted(message)[classIndex];
                             let classRole = message.guild.roles.find(r => r.id === classID.toString());
                             if (message.member.roles.has(classRole.id)) {
@@ -100,25 +112,26 @@ client.on('message', function(message) {
                     }
                     break;
                 case 'removeclass':
-                    let classRemove = /^\s*!removeclass\s(.+)/.exec(message.content);
-                    if (classRemove !== null) {
-                        let userClass = classRemove[1];
-                        userClass = userClass.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-                        let allClasses = getAllClassesNamesSystemSorted(message);
-                        userClass = replaceAlias(userClass);
+                    let classRemoveMatch = /^\s*!addclass\s(.+)/.exec(message.content);
+                    if (classRemoveMatch !== null) {
+                        let userClass = classRemoveMatch[1];
+                        let arrayed = [];
+                        arrayed.push(userClass);
+                        let fixed = replaceAliasesAndMistakes(arrayed[0], message)[0];
                         let allClassesSimplified = [];
+                        let allClasses = getAllClassesNamesSystemSorted(message);
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
-                        if (allClassesSimplified.indexOf(userClass) !== -1) { // If a valid class
-                            let classIndex = allClassesSimplified.indexOf(userClass);
+                        if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
+                            let classIndex = allClassesSimplified.indexOf(fixed);
                             let classID = getAllClassesIDsSystemSorted(message)[classIndex];
                             let classRole = message.guild.roles.find(r => r.id === classID.toString());
-                            if (!message.member.roles.has(classRole.id)) {
-                                message.reply("you aren't assigned to " + classRole.name + ".");
-                            } else {
+                            if (message.member.roles.has(classRole.id)) {
                                 message.member.removeRole(classRole).catch(console.error);
                                 message.reply("you have been removed from " + classRole.name + ".");
+                            } else {
+                                message.reply("you aren't assigned to " + classRole.name + ".");
                             }
                         } else {
                             message.reply("I didn't recognize that class.");
@@ -128,50 +141,110 @@ client.on('message', function(message) {
                     }
                     break;
                 case 'removeallclasses':
-
+                    let allClasses = getAllClassesIDsSystemSorted(message);
+                    let IDs = getAllUserClassesIDsSystemSorted(message);
+                    let IDsToRemove = [];
+                    for (let i = 0; i < allClasses.length; i++) {
+                        for (let j = 0; j < IDs.length; j++) {
+                            if (allClasses[i] === IDs[j]) {
+                                IDsToRemove.push(IDs[j]);
+                            }
+                        }
+                    }
+                    let roles = [];
+                    for (let i = 0; i < IDsToRemove.length; i++) {
+                        roles.push(message.guild.roles.find(r => r.id === IDsToRemove[i].toString()));
+                    }
+                    for (let i = 0; i < roles.length; i++) {
+                        message.member.removeRole(roles[i]).catch(console.error);
+                    }
+                    message.reply("all classes you were assigned to have been removed.");
                     break;
-
+                case 'testlevenshtein':
+                    let levRegExp = /^\w*!testlevenshtein\s(.+)\|(.+)/;
+                    if (levRegExp.test(message.content)) {
+                        let s1 = levRegExp.exec(message.content)[1];
+                        let s2 = levRegExp.exec(message.content)[2];
+                        message.channel.send(levenshtein(s1,s2));
+                    } else {
+                        message.channel.send("`!testlevenshtein string1|string2`");
+                    }
+                    break;
             }
         }
     }
 });
 
-function getAllClassesNamesAlphabetSorted(message) {
+function getAllClassesNamesAlphabetSorted(context) {
     let classes = [];
-    let botRolePosition = message.guild.roles.find(r => r.id === "540336652313165835").position;
-    for (let i = 0; i < message.member.guild.roles.array().length; i++) {
-        if (message.member.guild.roles.array()[i].position < botRolePosition && message.member.guild.roles.array()[i].name !== "@everyone") {
-            classes.push(message.member.guild.roles.array()[i].name);
+    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    for (let i = 0; i < context.member.guild.roles.array().length; i++) {
+        if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
+            classes.push(context.member.guild.roles.array()[i].name);
         }
     }
     classes.sort();
     return classes;
 }
 
-function getAllClassesNamesSystemSorted(message) {
+function getAllClassesNamesSystemSorted(context) {
     let classes = [];
-    let botRolePosition = message.guild.roles.find(r => r.id === "540336652313165835").position;
-    for (let i = 0; i < message.member.guild.roles.array().length; i++) {
-        if (message.member.guild.roles.array()[i].position < botRolePosition && message.member.guild.roles.array()[i].name !== "@everyone") {
-            classes.push(message.member.guild.roles.array()[i].name);
+    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    for (let i = 0; i < context.member.guild.roles.array().length; i++) {
+        if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
+            classes.push(context.member.guild.roles.array()[i].name);
         }
     }
     return classes;
 }
 
-function getAllClassesIDsSystemSorted(message) {
+function getAllClassesIDsSystemSorted(context) {
     let classes = [];
-    let botRolePosition = message.guild.roles.find(r => r.id === "540336652313165835").position;
-    for (let i = 0; i < message.member.guild.roles.array().length; i++) {
-        if (message.member.guild.roles.array()[i].position < botRolePosition && message.member.guild.roles.array()[i].name !== "@everyone") {
-            classes.push(message.member.guild.roles.array()[i].id);
+    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    for (let i = 0; i < context.member.guild.roles.array().length; i++) {
+        if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
+            classes.push(context.member.guild.roles.array()[i].id);
         }
     }
     return classes;
 }
 
-function replaceAliases(userInput) {
-    let replaced = userInput;
+function levenshtein(str1, str2) { // Courtesy of bindiego on GitHub. Modified.
+    let m = str1.length,
+        n = str2.length,
+        d = [],
+        i, j;
+
+    if (!m) return n;
+    if (!n) return m;
+
+    for (i = 0; i <= m; i++) d[i] = [i];
+    for (j = 0; j <= n; j++) d[0][j] = j;
+
+    for (j = 1; j <= n; j++) {
+        for (i = 1; i <= m; i++) {
+            if (str1[i-1] === str2[j-1]) d[i][j] = d[i - 1][j - 1];
+            else d[i][j] = Math.min(d[i-1][j], d[i][j-1], d[i-1][j-1]) + 1;
+        }
+    }
+    return d[m][n];
+}
+
+function getAllUserClassesIDsSystemSorted(context) {
+    let userClassesIDs = [];
+    for (let i = 0; i < context.member.guild.roles.array().length; i++) {
+        userClassesIDs.push(context.member.guild.roles.array()[i].id);
+    }
+    return userClassesIDs;
+}
+
+function replaceAliasesAndMistakes(simplifiedUserClasses, context) {
+    let replaced = simplifiedUserClasses;
+    let allClasses = getAllClassesNamesAlphabetSorted(context);
+    let allClassesSimplified = [];
+    for (let i = 0; i < allClasses.length; i++) {
+        allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+    }
     let buffer = fs.readFileSync('aliases.db');
     let lines = buffer.toString().split("\n");
     let commentLineRegex = new RegExp('^\\s*#');
@@ -185,42 +258,38 @@ function replaceAliases(userInput) {
             masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
         }
     }
-    for (let i = 0; i < replaced.length; i++) { // For each class that the user entered
-        for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases
-            for (let k = 0; k < masterAliases[j].length; k++) { // For each alias
-                if (masterAliases[j][k] === replaced[i]) { // If the thing the user entered needs to be replaced
-                    replaced[i] = masterTarget[j]; // masterAliases's & masterTarget's have aligning indices
+    for (let i = 0; i < simplifiedUserClasses.length; i++) { // For each class the user entered
+        if (allClassesSimplified.indexOf(simplifiedUserClasses[i]) === -1) { // If not a recognized class
+            let misspelledFromTarget;
+            let lowestDistanceTarget = Number.MAX_SAFE_INTEGER;
+            let index;
+            for (let j = 0; j < allClassesSimplified.length; j++) { // Check each master class
+                if (levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) < lowestDistanceTarget) { // If within the tolerance and is lower than the current lowest distance
+                    lowestDistanceTarget = levenshtein(simplifiedUserClasses[i], allClassesSimplified[j]); // Set new lowest distance
+                    index = j;
+                    misspelledFromTarget = true; // Ladies and gentlemen, we got 'em.
+                }
+            }
+            if (misspelledFromTarget && index !== null) {
+                replaced[i] = allClassesSimplified[index];
+            } else { // If the error wasn't fixed because of a target spelling issue (AP Calculub), check for alias misspellings (ap balc)
+                let lowestDistanceAlias = Number.MAX_SAFE_INTEGER;
+                let aliasIndex;
+                for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases (AP Calc, Calc)
+                    for (let k = 0; k < masterAliases[j].length; k++) { // For each alias (AP Calc)
+                        if (levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) < lowestDistanceAlias) { // If within the tolerance and is lower than the current lowest distance
+                            lowestDistanceAlias = levenshtein(masterAliases[j][k], simplifiedUserClasses[i]);
+                            aliasIndex = j;
+                        }
+                    }
+                }
+                if (aliasIndex !== null) {
+                    replaced[i] = masterTarget[aliasIndex];
                 }
             }
         }
     }
     return replaced;
 }
-
-function replaceAlias(studentClass) {
-    let replaced = studentClass;
-    let buffer = fs.readFileSync('aliases.db');
-    let lines = buffer.toString().split("\n");
-    let commentLineRegex = new RegExp('^\\s*#');
-    let aliasRegex = new RegExp('([a-z0-9]+):([a-z0-9,]+)');
-    let masterTarget = [];
-    let masterAliases = [];
-    for (let i = 0; i < lines.length; i++) { // For each alias in the file
-        if (!commentLineRegex.test(lines[i]) && aliasRegex.test(lines[i])) { // If the line isn't a comment and is a valid alias
-            let data = aliasRegex.exec(lines[i]); // Execute RegExp
-            masterTarget.push(data[1]); // The target "apcalculus"
-            masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
-        }
-    }
-        for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases
-            for (let k = 0; k < masterAliases[j].length; k++) { // For each alias
-                if (masterAliases[j][k] === replaced) { // If the thing the user entered needs to be replaced
-                    replaced = masterTarget[j]; // masterAliases's & masterTarget's have aligning indices
-                }
-            }
-        }
-    return replaced;
-}
-
 
 client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
