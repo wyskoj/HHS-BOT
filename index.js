@@ -195,7 +195,7 @@ client.on('message', function(message) {
 
 function getAllClassesNamesAlphabetSorted(context) {
     let classes = [];
-    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    let botRolePosition = context.guild.roles.find(r => r.name === "Bot").position;
     for (let i = 0; i < context.member.guild.roles.array().length; i++) {
         if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
             classes.push(context.member.guild.roles.array()[i].name);
@@ -207,7 +207,7 @@ function getAllClassesNamesAlphabetSorted(context) {
 
 function getAllClassesNamesSystemSorted(context) {
     let classes = [];
-    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    let botRolePosition = context.guild.roles.find(r => r.name === "Bot").position;
     for (let i = 0; i < context.member.guild.roles.array().length; i++) {
         if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
             classes.push(context.member.guild.roles.array()[i].name);
@@ -218,7 +218,7 @@ function getAllClassesNamesSystemSorted(context) {
 
 function getAllClassesIDsSystemSorted(context) {
     let classes = [];
-    let botRolePosition = context.guild.roles.find(r => r.id === "540336652313165835").position;
+    let botRolePosition = context.guild.roles.find(r => r.name === "Bot").position;
     for (let i = 0; i < context.member.guild.roles.array().length; i++) {
         if (context.member.guild.roles.array()[i].position < botRolePosition && context.member.guild.roles.array()[i].name !== "@everyone") {
             classes.push(context.member.guild.roles.array()[i].id);
