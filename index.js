@@ -50,11 +50,17 @@ client.on('message', function(message) {
 
                             /* BEGIN ROLE ASSIGNMENT */
                             let indicesOfRolesToAssign = [];
+                            let classesThatCouldNotBeAssigned = [];
                             for (let i = 0; i < userClassesSimplified.length; i++) {
+                                let assigned = false;
                                 for (let j = 0; j < allClassesSimplified.length; j++) {
                                     if (userClassesSimplified[i] === allClassesSimplified[j]) {
                                         indicesOfRolesToAssign.push(j);
+                                        assigned = true;
                                     }
+                                }
+                                if (assigned === false) {
+                                    classesThatCouldNotBeAssigned.push(userClassesSimplified[i]);
                                 }
                             }
                             let rolesToAssign = [];
@@ -76,6 +82,10 @@ client.on('message', function(message) {
                             } else {
                                 message.reply("you have been assigned to these classes: " + assignedClasses + ".");
 
+                            }
+                            if (classesThatCouldNotBeAssigned.length > 1) {
+                                let botErrorChannel = message.guild.channels.get("541061854969987078");
+                                botErrorChannel.send(timeStamp() + " Could not add bulk add classes: `" + classesThatCouldNotBeAssigned.toString() + "`.");
                             }
                         }
                     } else {
@@ -105,6 +115,8 @@ client.on('message', function(message) {
                                 message.reply("you have been assigned to " + classRole.name + ".");
                             }
                         } else {
+                            let botErrorChannel = message.guild.channels.get("541061854969987078");
+                            botErrorChannel.send(timeStamp() + " Could not add unknown class: `" + fixed + "`.");
                             message.reply("I didn't recognize that class.");
                         }
                     } else {
@@ -112,12 +124,12 @@ client.on('message', function(message) {
                     }
                     break;
                 case 'removeclass':
-                    let classRemoveMatch = /^\s*!addclass\s(.+)/.exec(message.content);
+                    let classRemoveMatch = /^\s*!removeclass\s(.+)/.exec(message.content);
                     if (classRemoveMatch !== null) {
                         let userClass = classRemoveMatch[1];
                         let arrayed = [];
                         arrayed.push(userClass);
-                        let fixed = replaceAliasesAndMistakes(arrayed[0], message)[0];
+                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
                         let allClassesSimplified = [];
                         let allClasses = getAllClassesNamesSystemSorted(message);
                         for (let i = 0; i < allClasses.length; i++) {
@@ -134,6 +146,8 @@ client.on('message', function(message) {
                                 message.reply("you aren't assigned to " + classRole.name + ".");
                             }
                         } else {
+                            let botErrorChannel = message.guild.channels.get("541061854969987078");
+                            botErrorChannel.send(timeStamp() + " Could not remove unknown class: `" + fixed + "`.");
                             message.reply("I didn't recognize that class.");
                         }
                     } else {
@@ -261,38 +275,63 @@ function replaceAliasesAndMistakes(simplifiedUserClasses, context) {
             masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
         }
     }
-    for (let i = 0; i < simplifiedUserClasses.length; i++) { // For each class the user entered
-        if (allClassesSimplified.indexOf(simplifiedUserClasses[i]) === -1) { // If not a recognized class
-            let misspelledFromTarget;
-            let lowestDistanceTarget = Number.MAX_SAFE_INTEGER;
-            let index;
-            for (let j = 0; j < allClassesSimplified.length; j++) { // Check each master class
-                if (levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) < lowestDistanceTarget) { // If within the tolerance and is lower than the current lowest distance
-                    lowestDistanceTarget = levenshtein(simplifiedUserClasses[i], allClassesSimplified[j]); // Set new lowest distance
-                    index = j;
-                    misspelledFromTarget = true; // Ladies and gentlemen, we got 'em.
-                }
-            }
-            if (misspelledFromTarget && index !== null) {
-                replaced[i] = allClassesSimplified[index];
-            } else { // If the error wasn't fixed because of a target spelling issue (AP Calculub), check for alias misspellings (ap balc)
-                let lowestDistanceAlias = Number.MAX_SAFE_INTEGER;
-                let aliasIndex;
-                for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases (AP Calc, Calc)
-                    for (let k = 0; k < masterAliases[j].length; k++) { // For each alias (AP Calc)
-                        if (levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) < lowestDistanceAlias) { // If within the tolerance and is lower than the current lowest distance
-                            lowestDistanceAlias = levenshtein(masterAliases[j][k], simplifiedUserClasses[i]);
-                            aliasIndex = j;
-                        }
-                    }
-                }
-                if (aliasIndex !== null) {
-                    replaced[i] = masterTarget[aliasIndex];
-                }
-            }
+
+    for (let i = 0; i < lines.length; i++) { // For each alias in the file
+        if (!commentLineRegex.test(lines[i]) && aliasRegex.test(lines[i])) { // If the line isn't a comment and is a valid alias
+            let data = aliasRegex.exec(lines[i]); // Execute RegExp
+            masterTarget.push(data[1]); // The target "apcalculus"
+            masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
         }
     }
+
+    for (let i = 0; i < simplifiedUserClasses.length; i++) { // For each class the user entered
+        let aliased = false;
+        if (allClassesSimplified.indexOf(simplifiedUserClasses[i]) === -1) { // If not a recognized class
+            for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases
+                for (let k = 0; k < masterAliases[j].length; k++) { // For each alias
+                    if (masterAliases[j][k] === replaced[i]) { // If the thing the user entered needs to be replaced
+                        replaced[i] = masterTarget[j]; // masterAliases's & masterTarget's have aligning indices
+                        aliased = true;
+                    }
+                }
+            }
+            if (!aliased) {
+                let misspelledFromTarget;
+                let lowestDistanceTarget = Number.MAX_SAFE_INTEGER;
+                let index;
+                for (let j = 0; j < allClassesSimplified.length; j++) { // Check each master class
+                    if (levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) < lowestDistanceTarget) { // If within the tolerance and is lower than the current lowest distance
+                        lowestDistanceTarget = levenshtein(simplifiedUserClasses[i], allClassesSimplified[j]); // Set new lowest distance
+                        index = j;
+                        misspelledFromTarget = true; // Ladies and gentlemen, we got 'em.
+                    }
+                }
+                if (misspelledFromTarget && index !== null) {
+                    replaced[i] = allClassesSimplified[index];
+                } else { // If the error wasn't fixed because of a target spelling issue (AP Calculub), check for alias misspellings (ap balc)
+                    let lowestDistanceAlias = Number.MAX_SAFE_INTEGER;
+                    let aliasIndex;
+                    for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases (AP Calc, Calc)
+                        for (let k = 0; k < masterAliases[j].length; k++) { // For each alias (AP Calc)
+                            if (levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) <= LEVENSHTEIN_DISTANCE_TOLERANCE && levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) < lowestDistanceAlias) { // If within the tolerance and is lower than the current lowest distance
+                                lowestDistanceAlias = levenshtein(masterAliases[j][k], simplifiedUserClasses[i]);
+                                aliasIndex = j;
+                            }
+                        }
+                    }
+                    if (aliasIndex !== undefined && aliasIndex !== null) {
+                        replaced[i] = masterTarget[aliasIndex];
+                    }
+                }
+            }
+            }
+
+    }
     return replaced;
+}
+
+function timeStamp() {
+    return '[' + new Date().toString().split(' G')[0] + ']';
 }
 
 client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
