@@ -15,7 +15,7 @@ client.on('message', function(message) {
             let command = match[1];
             switch (command) {
                 case "allclasses":
-                    let classes = getAllClassesNames(message);
+                    let classes = getAllClassesNamesAlphabetSorted(message);
                     let output = "```\n";
                     for (let i = 0; i < classes.length; i++) {
                         output += classes[i] + "\n";
