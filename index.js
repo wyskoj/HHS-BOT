@@ -10,7 +10,6 @@ client.on('ready', () => {
 
 client.on('message', function(message) {
     if (/^!\S+/g.test(message.content)) {
-        if (message.channel.id === "539537645777321994" || message.channel.id === "539594747451277383") { // #bot-testing
             let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
             let command = match[1];
             switch (command) {
@@ -188,7 +187,7 @@ client.on('message', function(message) {
                     message.channel.send("Pong!");
                     break;
             }
-        }
+
     }
 });
 
