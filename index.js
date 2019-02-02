@@ -8,6 +8,8 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
+client.on('error', console.error);
+
 client.on('message', function(message) {
     if (/^!\S+/g.test(message.content)) {
             let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
@@ -331,6 +333,7 @@ function replaceAliasesAndMistakes(simplifiedUserClasses, context) {
 
 function timeStamp() {
     return '[' + new Date().toString().split(' G')[0] + ']';
+
 }
 
 client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
