@@ -39,7 +39,7 @@ civics
 digitaldesign
 drawingandpainting1:drawingandpainting,drawing,painting,drawingpainting,drawing1,painting1,drawingpainting1
 drawingandpainting2:drawing2,painting2,drawingpainting2
-earthscience:earthsci
+earthscience:earthsci,earthscigeology,earthsciatmosphere,earthsciatmosph,earth
 economics:econ
 english9:eng9
 english10:eng10
@@ -63,7 +63,7 @@ photojournalism
 physicalscience:physicalsci
 physics:physics1
 pooltime:pool,ptime
-precalculus:precalc,pdm,precalculusandderivedmathematics,precalculusderivedmathematics,precalculusderivedmath,precalcderivedmath
+precalculus:precalc,pdm,precalculusandderivedmathematics,precalculusderivedmathematics,percalculusderivedmath,precalcderivedmath
 psychology:psych
 spanish1:spanish
 spanish2
