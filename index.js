@@ -188,6 +188,10 @@ client.on('message', function(message) {
                 case 'ping':
                     message.channel.send("Pong!");
                     break;
+				case '!web':
+				case '!website':
+					message.channel.send("https://www.haslett.k12.mi.us/hhs");
+					break;
             }
 
     }
