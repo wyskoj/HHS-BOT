@@ -4,8 +4,8 @@
 # For example:
 # english11honors:britlit,english11h
 
-2ddesign:2d,design
-3ddesign:3d
+2ddesign:2d,design,2dart
+3ddesign:3d,3dart
 9thgradepe:9gradepe,9gradephysicaleduction,9thgradephysicaleduction,pe,physicaleduction,freshmanpe,freshmenpe,freshmanphysicaleduction,freshmenphysicaleduction
 accounting1:accounting,buisnessaccounting1,buisnessaccounting,buisness1,buisness
 accounting2,buisnessaccounting2,buisness2
