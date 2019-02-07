@@ -182,7 +182,7 @@ client.on('message', function(message) {
                     if (levRegExp.test(message.content)) {
                         let s1 = levRegExp.exec(message.content)[1];
                         let s2 = levRegExp.exec(message.content)[2];
-                        message.channel.send(levenshtein(s1,s2));
+                        message.channel.send(levenshtein(s1, s2));
                     } else {
                         message.channel.send("`!testlevenshtein string1|string2`");
                     }
@@ -190,12 +190,19 @@ client.on('message', function(message) {
                 case 'ping':
                     message.channel.send("Pong!");
                     break;
-				case '!web':
-				case '!website':
-					message.channel.send("https://www.haslett.k12.mi.us/hhs");
-					break;
-            }
+                case 'website':
+                    message.channel.send("https://www.haslett.k12.mi.us/hhs");
+                    break;
+                case 'testclass':
+                    let classFunTest = /^\s*!testclass\s(.+)/.exec(message.content);
+                    if (classFunTest !== null) {
+                        let userClass = classFunTest[1]; // Extract class
+                        let oneArray = [];
+                        oneArray.push(userClass);
+                        replaceAliasesAndMistakesForFun(oneArray, message);
 
+                    }
+            }
     }
 });
 
@@ -335,6 +342,82 @@ function replaceAliasesAndMistakes(simplifiedUserClasses, context) {
 
     }
     return replaced;
+}
+
+function replaceAliasesAndMistakesForFun(simplifiedUserClasses, context) {
+    let replaced = simplifiedUserClasses;
+    let allClasses = getAllClassesNamesAlphabetSorted(context);
+    let allClassesSimplified = [];
+    for (let i = 0; i < allClasses.length; i++) {
+        allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+    }
+    let buffer = fs.readFileSync('aliases.db');
+    let lines = buffer.toString().split("\n");
+    let commentLineRegex = new RegExp('^\\s*#');
+    let aliasRegex = new RegExp('([a-z0-9]+):([a-z0-9,]+)');
+    let masterTarget = [];
+    let masterAliases = [];
+    for (let i = 0; i < lines.length; i++) { // For each alias in the file
+        if (!commentLineRegex.test(lines[i]) && aliasRegex.test(lines[i])) { // If the line isn't a comment and is a valid alias
+            let data = aliasRegex.exec(lines[i]); // Execute RegExp
+            masterTarget.push(data[1]); // The target "apcalculus"
+            masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
+        }
+    }
+
+    for (let i = 0; i < lines.length; i++) { // For each alias in the file
+        if (!commentLineRegex.test(lines[i]) && aliasRegex.test(lines[i])) { // If the line isn't a comment and is a valid alias
+            let data = aliasRegex.exec(lines[i]); // Execute RegExp
+            masterTarget.push(data[1]); // The target "apcalculus"
+            masterAliases.push(data[2].split(",")); // The aliases ["apcalc","calcab",...]
+        }
+    }
+    let lowestDistanceTarget = Number.MAX_SAFE_INTEGER;
+    let lowestDistanceAlias = Number.MAX_SAFE_INTEGER;
+    for (let i = 0; i < simplifiedUserClasses.length; i++) { // For each class the user entered
+        let aliased = false;
+        if (allClassesSimplified.indexOf(simplifiedUserClasses[i]) === -1) { // If not a recognized class
+            for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases
+                for (let k = 0; k < masterAliases[j].length; k++) { // For each alias
+                    if (masterAliases[j][k] === replaced[i]) { // If the thing the user entered needs to be replaced
+                        replaced[i] = masterTarget[j]; // masterAliases's & masterTarget's have aligning indices
+                        aliased = true;
+                    }
+                }
+            }
+            if (!aliased) {
+                let misspelledFromTarget;
+                lowestDistanceTarget = Number.MAX_SAFE_INTEGER;
+                let index;
+                for (let j = 0; j < allClassesSimplified.length; j++) { // Check each master class
+                    if (levenshtein(allClassesSimplified[j], simplifiedUserClasses[i]) < lowestDistanceTarget) { // If lower than the current lowest distance
+                        lowestDistanceTarget = levenshtein(simplifiedUserClasses[i], allClassesSimplified[j]); // Set new lowest distance
+                        index = j;
+                        misspelledFromTarget = true; // Ladies and gentlemen, we got 'em.
+                    }
+                }
+                if (misspelledFromTarget && index !== null) {
+                    replaced[i] = allClassesSimplified[index];
+                } else { // If the error wasn't fixed because of a target spelling issue (AP Calculub), check for alias misspellings (ap balc)
+                    lowestDistanceAlias = Number.MAX_SAFE_INTEGER;
+                    let aliasIndex;
+                    for (let j = 0; j < masterAliases.length; j++) { // For each set of aliases (AP Calc, Calc)
+                        for (let k = 0; k < masterAliases[j].length; k++) { // For each alias (AP Calc)
+                            if (levenshtein(masterAliases[j][k], simplifiedUserClasses[i]) < lowestDistanceAlias) { // If within the tolerance and is lower than the current lowest distance
+                                lowestDistanceAlias = levenshtein(masterAliases[j][k], simplifiedUserClasses[i]);
+                                aliasIndex = j;
+                            }
+                        }
+                    }
+                    if (aliasIndex !== undefined && aliasIndex !== null) {
+                        replaced[i] = masterTarget[aliasIndex];
+                    }
+                }
+            }
+        }
+
+    }
+    context.channel.send(replaced[0] + " : " + (lowestDistanceTarget ));
 }
 
 function timeStamp() {
