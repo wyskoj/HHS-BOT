@@ -105,6 +105,7 @@ client.on('message', function(message) {
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
+                        fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
                         if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
                             let classIndex = allClassesSimplified.indexOf(fixed);
                             let classID = getAllClassesIDsSystemSorted(message)[classIndex];
@@ -130,12 +131,13 @@ client.on('message', function(message) {
                         let userClass = classRemoveMatch[1];
                         let arrayed = [];
                         arrayed.push(userClass);
-                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
-                        let allClassesSimplified = [];
-                        let allClasses = getAllClassesNamesSystemSorted(message);
+                        let fixed = replaceAliasesAndMistakes(
+                        let allClasses = arrayed, message)[0];
+                        let allClassesSimplified = [];getAllClassesNamesSystemSorted(message);
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
+                        fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
                         if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
                             let classIndex = allClassesSimplified.indexOf(fixed);
                             let classID = getAllClassesIDsSystemSorted(message)[classIndex];
