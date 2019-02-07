@@ -131,9 +131,9 @@ client.on('message', function(message) {
                         let userClass = classRemoveMatch[1];
                         let arrayed = [];
                         arrayed.push(userClass);
-                        let fixed = replaceAliasesAndMistakes(
-                        let allClasses = arrayed, message)[0];
-                        let allClassesSimplified = [];getAllClassesNamesSystemSorted(message);
+                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
+                        let allClassesSimplified = [];
+                        let allClasses = getAllClassesNamesSystemSorted(message);
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
