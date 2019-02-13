@@ -234,16 +234,21 @@ client.on('message', function (message) {
                     let fullDate = year + goodMonth + thisDate;
 
                     /* Regex */
-                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (\\d+\\.\\d+)");
+                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (-?\\d+\\.\\d+)");
                     let match = getPrediction.exec(body);
 
-                    if (match.length < 2) {
-                        message.channel.send("No snow day prediction.") // This should never happen, but just in case.
-                    } else if (parseInt(match[1]) <= 0) {
-                        message.channel.send("There is a Limited % of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com.");
+                    if (match !== null) {
+                        if (match.length < 2) {
+                            message.channel.send("No snow day prediction.");
+                        } else if (parseInt(match[1]) <= 0) {
+                            message.channel.send("There is a Limited % of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com.");
+                        } else {
+                            message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
+                        }
                     } else {
-                        message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
+                        message.channel.send("No snow day prediction.");
                     }
+
                 });
                 break;
             case 'weather':
