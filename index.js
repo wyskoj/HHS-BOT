@@ -1,5 +1,6 @@
 const Discord = require('discord.js');
 const fs = require('fs');
+const request = require('request');
 const client = new Discord.Client();
 
 const LEVENSHTEIN_DISTANCE_TOLERANCE = 2;
@@ -10,199 +11,280 @@ client.on('ready', () => {
 
 client.on('error', console.error);
 
-client.on('message', function(message) {
+client.on('message', function (message) {
     if (/^!\S+/g.test(message.content)) {
-            let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
-            let command = match[1];
-            switch (command) {
-                case "allclasses":
-                    let classes = getAllClassesNamesAlphabetSorted(message);
-                    let output = "```\n";
-                    for (let i = 0; i < classes.length; i++) {
-                        output += classes[i] + "\n";
-                    }
-                    output += "```";
-                    message.channel.send(output);
-                    break;
-                case "classes":
-                    let match = /^!(\S+)\s(.*)/g.exec(message.content);
-                    if (match !== null) {
-                        if (match.length !== 3) {
-                            message.reply("please add your classes after `!classes`, separated by commas.");
-                        } else {
-                            let userClasses = match[2].toLowerCase().split(",");
-                            for (let i = 0; i < userClasses.length; i++) {
-                                userClasses[i] = userClasses[i].trim();
-                            }
-                            let allClasses = getAllClassesNamesSystemSorted(message);
-                            let allIDs = getAllClassesIDsSystemSorted(message);
-                            let allClassesSimplified = [];
-                            let userClassesSimplified = [];
-                            for (let i = 0; i < allClasses.length; i++) {
-                                allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
-                            }
-                            for (let i = 0; i < userClasses.length; i++) {
-                                userClassesSimplified.push(userClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
-                            }
-                            // userClassesSimplified = replaceAliases(userClassesSimplified);
-                            // userClassesSimplified = levensteinReplace(userClassesSimplified, message);
-
-                            userClassesSimplified = replaceAliasesAndMistakes(userClassesSimplified, message);
-
-                            /* BEGIN ROLE ASSIGNMENT */
-                            let indicesOfRolesToAssign = [];
-                            let classesThatCouldNotBeAssigned = [];
-                            for (let i = 0; i < userClassesSimplified.length; i++) {
-                                let assigned = false;
-                                for (let j = 0; j < allClassesSimplified.length; j++) {
-                                    if (userClassesSimplified[i] === allClassesSimplified[j]) {
-                                        indicesOfRolesToAssign.push(j);
-                                        assigned = true;
-                                    }
-                                }
-                                if (assigned === false) {
-                                    classesThatCouldNotBeAssigned.push(userClassesSimplified[i]);
-                                }
-                            }
-                            let rolesToAssign = [];
-                            for (let i = 0; i < indicesOfRolesToAssign.length; i++) {
-                                rolesToAssign.push(message.guild.roles.find(r => r.id === allIDs[indicesOfRolesToAssign[i].toString()]))
-                            }
-                            for (let i = 0; i < rolesToAssign.length; i++) {
-                                message.member.addRole(rolesToAssign[i]).catch(console.error);
-                            }
-                            let assignedClasses = "";
-                            for (let i = 0; i < rolesToAssign.length; i++) {
-                                assignedClasses += rolesToAssign[i].name;
-                                if (i !== rolesToAssign.length - 1) {
-                                    assignedClasses += ", ";
-                                }
-                            }
-                            if (rolesToAssign.length === 0) {
-                                message.reply("you were not added to any classes.");
-                            } else {
-                                message.reply("you have been assigned to these classes: " + assignedClasses + ".");
-
-                            }
-                            if (classesThatCouldNotBeAssigned.length > 1) {
-                                let botErrorChannel = message.guild.channels.get("541061854969987078");
-                                botErrorChannel.send(timeStamp() + " Could not add bulk add classes: `" + classesThatCouldNotBeAssigned.toString() + "`.");
-                            }
-                        }
-                    } else {
+        let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
+        let command = match[1];
+        switch (command) {
+            case "allclasses":
+                let classes = getAllClassesNamesAlphabetSorted(message);
+                let output = "```\n";
+                for (let i = 0; i < classes.length; i++) {
+                    output += classes[i] + "\n";
+                }
+                output += "```";
+                message.channel.send(output);
+                break;
+            case "classes":
+                let match = /^!(\S+)\s(.*)/g.exec(message.content);
+                if (match !== null) {
+                    if (match.length !== 3) {
                         message.reply("please add your classes after `!classes`, separated by commas.");
-                    }
-                    break;
-                case 'addclass':
-                    let classMatch = /^\s*!addclass\s(.+)/.exec(message.content);
-                    if (classMatch !== null) {
-                        let userClass = classMatch[1];
-                        let arrayed = [];
-                        arrayed.push(userClass);
-                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
-                        let allClassesSimplified = [];
+                    } else {
+                        let userClasses = match[2].toLowerCase().split(",");
+                        for (let i = 0; i < userClasses.length; i++) {
+                            userClasses[i] = userClasses[i].trim();
+                        }
                         let allClasses = getAllClassesNamesSystemSorted(message);
+                        let allIDs = getAllClassesIDsSystemSorted(message);
+                        let allClassesSimplified = [];
+                        let userClassesSimplified = [];
                         for (let i = 0; i < allClasses.length; i++) {
                             allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
-                        fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-                        if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
-                            let classIndex = allClassesSimplified.indexOf(fixed);
-                            let classID = getAllClassesIDsSystemSorted(message)[classIndex];
-                            let classRole = message.guild.roles.find(r => r.id === classID.toString());
-                            if (message.member.roles.has(classRole.id)) {
-                                message.reply("you are already assigned to " + classRole.name + ".");
-                            } else {
-                                message.member.addRole(classRole).catch(console.error);
-                                message.reply("you have been assigned to " + classRole.name + ".");
-                            }
-                        } else {
-                            let botErrorChannel = message.guild.channels.get("541061854969987078");
-                            botErrorChannel.send(timeStamp() + " Could not add unknown class: `" + fixed + "`.");
-                            message.reply("I didn't recognize that class.");
+                        for (let i = 0; i < userClasses.length; i++) {
+                            userClassesSimplified.push(userClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
                         }
-                    } else {
-                        message.reply("please specify a class.");
-                    }
-                    break;
-                case 'removeclass':
-                    let classRemoveMatch = /^\s*!removeclass\s(.+)/.exec(message.content);
-                    if (classRemoveMatch !== null) {
-                        let userClass = classRemoveMatch[1];
-                        let arrayed = [];
-                        arrayed.push(userClass);
-                        let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
-                        let allClassesSimplified = [];
-                        let allClasses = getAllClassesNamesSystemSorted(message);
-                        for (let i = 0; i < allClasses.length; i++) {
-                            allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
-                        }
-                        fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-                        if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
-                            let classIndex = allClassesSimplified.indexOf(fixed);
-                            let classID = getAllClassesIDsSystemSorted(message)[classIndex];
-                            let classRole = message.guild.roles.find(r => r.id === classID.toString());
-                            if (message.member.roles.has(classRole.id)) {
-                                message.member.removeRole(classRole).catch(console.error);
-                                message.reply("you have been removed from " + classRole.name + ".");
-                            } else {
-                                message.reply("you aren't assigned to " + classRole.name + ".");
-                            }
-                        } else {
-                            let botErrorChannel = message.guild.channels.get("541061854969987078");
-                            botErrorChannel.send(timeStamp() + " Could not remove unknown class: `" + fixed + "`.");
-                            message.reply("I didn't recognize that class.");
-                        }
-                    } else {
-                        message.reply("please specify a class.");
-                    }
-                    break;
-                case 'removeallclasses':
-                    let allClasses = getAllClassesIDsSystemSorted(message);
-                    let IDs = getAllUserClassesIDsSystemSorted(message);
-                    let IDsToRemove = [];
-                    for (let i = 0; i < allClasses.length; i++) {
-                        for (let j = 0; j < IDs.length; j++) {
-                            if (allClasses[i] === IDs[j]) {
-                                IDsToRemove.push(IDs[j]);
-                            }
-                        }
-                    }
-                    let roles = [];
-                    for (let i = 0; i < IDsToRemove.length; i++) {
-                        roles.push(message.guild.roles.find(r => r.id === IDsToRemove[i].toString()));
-                    }
-                    for (let i = 0; i < roles.length; i++) {
-                        message.member.removeRole(roles[i]).catch(console.error);
-                    }
-                    message.reply("all classes you were assigned to have been removed.");
-                    break;
-                case 'testlevenshtein':
-                    let levRegExp = /^\w*!testlevenshtein\s(.+)\|(.+)/;
-                    if (levRegExp.test(message.content)) {
-                        let s1 = levRegExp.exec(message.content)[1];
-                        let s2 = levRegExp.exec(message.content)[2];
-                        message.channel.send(levenshtein(s1, s2));
-                    } else {
-                        message.channel.send("`!testlevenshtein string1|string2`");
-                    }
-                    break;
-                case 'ping':
-                    message.channel.send("Pong!");
-                    break;
-                case 'website':
-                    message.channel.send("https://www.haslett.k12.mi.us/hhs");
-                    break;
-                case 'testclass':
-                    let classFunTest = /^\s*!testclass\s(.+)/.exec(message.content);
-                    if (classFunTest !== null) {
-                        let userClass = classFunTest[1]; // Extract class
-                        let oneArray = [];
-                        oneArray.push(userClass);
-                        replaceAliasesAndMistakesForFun(oneArray, message);
+                        // userClassesSimplified = replaceAliases(userClassesSimplified);
+                        // userClassesSimplified = levensteinReplace(userClassesSimplified, message);
 
+                        userClassesSimplified = replaceAliasesAndMistakes(userClassesSimplified, message);
+
+                        /* BEGIN ROLE ASSIGNMENT */
+                        let indicesOfRolesToAssign = [];
+                        let classesThatCouldNotBeAssigned = [];
+                        for (let i = 0; i < userClassesSimplified.length; i++) {
+                            let assigned = false;
+                            for (let j = 0; j < allClassesSimplified.length; j++) {
+                                if (userClassesSimplified[i] === allClassesSimplified[j]) {
+                                    indicesOfRolesToAssign.push(j);
+                                    assigned = true;
+                                }
+                            }
+                            if (assigned === false) {
+                                classesThatCouldNotBeAssigned.push(userClassesSimplified[i]);
+                            }
+                        }
+                        let rolesToAssign = [];
+                        for (let i = 0; i < indicesOfRolesToAssign.length; i++) {
+                            rolesToAssign.push(message.guild.roles.find(r => r.id === allIDs[indicesOfRolesToAssign[i].toString()]))
+                        }
+                        for (let i = 0; i < rolesToAssign.length; i++) {
+                            message.member.addRole(rolesToAssign[i]).catch(console.error);
+                        }
+                        let assignedClasses = "";
+                        for (let i = 0; i < rolesToAssign.length; i++) {
+                            assignedClasses += rolesToAssign[i].name;
+                            if (i !== rolesToAssign.length - 1) {
+                                assignedClasses += ", ";
+                            }
+                        }
+                        if (rolesToAssign.length === 0) {
+                            message.reply("you were not added to any classes.");
+                        } else {
+                            message.reply("you have been assigned to these classes: " + assignedClasses + ".");
+
+                        }
+                        if (classesThatCouldNotBeAssigned.length > 1) {
+                            let botErrorChannel = message.guild.channels.get("541061854969987078");
+                            botErrorChannel.send(timeStamp() + " Could not add bulk add classes: `" + classesThatCouldNotBeAssigned.toString() + "`.");
+                        }
                     }
-            }
+                } else {
+                    message.reply("please add your classes after `!classes`, separated by commas.");
+                }
+                break;
+            case 'addclass':
+                let classMatch = /^\s*!addclass\s(.+)/.exec(message.content);
+                if (classMatch !== null) {
+                    let userClass = classMatch[1];
+                    let arrayed = [];
+                    arrayed.push(userClass);
+                    let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
+                    let allClassesSimplified = [];
+                    let allClasses = getAllClassesNamesSystemSorted(message);
+                    for (let i = 0; i < allClasses.length; i++) {
+                        allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+                    }
+                    fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+                    if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
+                        let classIndex = allClassesSimplified.indexOf(fixed);
+                        let classID = getAllClassesIDsSystemSorted(message)[classIndex];
+                        let classRole = message.guild.roles.find(r => r.id === classID.toString());
+                        if (message.member.roles.has(classRole.id)) {
+                            message.reply("you are already assigned to " + classRole.name + ".");
+                        } else {
+                            message.member.addRole(classRole).catch(console.error);
+                            message.reply("you have been assigned to " + classRole.name + ".");
+                        }
+                    } else {
+                        let botErrorChannel = message.guild.channels.get("541061854969987078");
+                        botErrorChannel.send(timeStamp() + " Could not add unknown class: `" + fixed + "`.");
+                        message.reply("I didn't recognize that class.");
+                    }
+                } else {
+                    message.reply("please specify a class.");
+                }
+                break;
+            case 'removeclass':
+                let classRemoveMatch = /^\s*!removeclass\s(.+)/.exec(message.content);
+                if (classRemoveMatch !== null) {
+                    let userClass = classRemoveMatch[1];
+                    let arrayed = [];
+                    arrayed.push(userClass);
+                    let fixed = replaceAliasesAndMistakes(arrayed, message)[0];
+                    let allClassesSimplified = [];
+                    let allClasses = getAllClassesNamesSystemSorted(message);
+                    for (let i = 0; i < allClasses.length; i++) {
+                        allClassesSimplified.push(allClasses[i].trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, ""));
+                    }
+                    fixed = fixed.trim().toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+                    if (allClassesSimplified.indexOf(fixed) !== -1) { // If a valid class
+                        let classIndex = allClassesSimplified.indexOf(fixed);
+                        let classID = getAllClassesIDsSystemSorted(message)[classIndex];
+                        let classRole = message.guild.roles.find(r => r.id === classID.toString());
+                        if (message.member.roles.has(classRole.id)) {
+                            message.member.removeRole(classRole).catch(console.error);
+                            message.reply("you have been removed from " + classRole.name + ".");
+                        } else {
+                            message.reply("you aren't assigned to " + classRole.name + ".");
+                        }
+                    } else {
+                        let botErrorChannel = message.guild.channels.get("541061854969987078");
+                        botErrorChannel.send(timeStamp() + " Could not remove unknown class: `" + fixed + "`.");
+                        message.reply("I didn't recognize that class.");
+                    }
+                } else {
+                    message.reply("please specify a class.");
+                }
+                break;
+            case 'removeallclasses':
+                let allClasses = getAllClassesIDsSystemSorted(message);
+                let IDs = getAllUserClassesIDsSystemSorted(message);
+                let IDsToRemove = [];
+                for (let i = 0; i < allClasses.length; i++) {
+                    for (let j = 0; j < IDs.length; j++) {
+                        if (allClasses[i] === IDs[j]) {
+                            IDsToRemove.push(IDs[j]);
+                        }
+                    }
+                }
+                let roles = [];
+                for (let i = 0; i < IDsToRemove.length; i++) {
+                    roles.push(message.guild.roles.find(r => r.id === IDsToRemove[i].toString()));
+                }
+                for (let i = 0; i < roles.length; i++) {
+                    message.member.removeRole(roles[i]).catch(console.error);
+                }
+                message.reply("all classes you were assigned to have been removed.");
+                break;
+            case 'testlevenshtein':
+                let levRegExp = /^\w*!testlevenshtein\s(.+)\|(.+)/;
+                if (levRegExp.test(message.content)) {
+                    let s1 = levRegExp.exec(message.content)[1];
+                    let s2 = levRegExp.exec(message.content)[2];
+                    message.channel.send(levenshtein(s1, s2));
+                } else {
+                    message.channel.send("`!testlevenshtein string1|string2`");
+                }
+                break;
+            case 'ping':
+                message.channel.send("Pong!");
+                break;
+            case 'website':
+                message.channel.send("https://www.haslett.k12.mi.us/hhs");
+                break;
+            case 'testclass':
+                let classFunTest = /^\s*!testclass\s(.+)/.exec(message.content);
+                if (classFunTest !== null) {
+                    let userClass = classFunTest[1]; // Extract class
+                    let oneArray = [];
+                    oneArray.push(userClass);
+                    replaceAliasesAndMistakesForFun(oneArray, message);
+                }
+                break;
+            case 'snowdaycalc':
+            case 'snowday':
+                let snowDayDB = fs.readFileSync('snowDayCount.db');
+                let amountOfSnowDays = parseInt(snowDayDB);
+                request('https://www.snowdaycalculator.com/prediction.php?zipcode=48840&snowdays=' + amountOfSnowDays + '&extra=0.4&', function (error, response, body) {
+                    let date = new Date(); // Store the current time
+                    let year = date.getFullYear().toString(); // Define the year as a string
+                    let month = date.getMonth() + 1; // Define the month as a string (add 1 because Jan is 0)
+
+                    /* Prepend a 0 is the month is only 1 digit long */
+                    let goodMonth = "";
+                    if (month.toString().length === 1) {
+                        goodMonth = "0" + month;
+                    } else {
+                        goodMonth = month.toString();
+                    }
+
+                    /* Calculate tomorrow's date, if after 7 AM. Otherwise, Calculate today's date. */
+                    let thisDate;
+                    if (date.getHours() >= 7) { // If after 7 AM, do tomorrow's prediction
+                        thisDate = date.getDate();
+                        thisDate += 1;
+                        thisDate = thisDate.toString();
+                    } else {
+                        thisDate = date.getDate().toString();
+                    }
+
+                    /* Concatenate the full date with numbers (e.g., 20190212) */
+                    let fullDate = year + goodMonth + thisDate;
+
+                    /* Regex */
+                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (\\d+\\.\\d+)");
+                    let match = getPrediction.exec(body);
+
+                    if (match.length < 2) {
+                        message.channel.send("No snow day prediction.") // This should never happen, but just in case.
+                    } else if (parseInt(match[1]) <= 0) {
+                        message.channel.send("There is a Limited % of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com.");
+                    } else {
+                        message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
+                    }
+                });
+                break;
+            case 'weather':
+                try {
+                    let number;
+                    function callback(error, response, body) {
+
+                        let header = JSON.parse(body)["properties"]["periods"][number];
+                        message.channel.send(
+                            "**Weather data for " + header["startTime"].substring(0, 10) + " (" + header["name"] + ")**: *" + header["shortForecast"] + "*\n" + // Weather data for 2019-02-12: Rain and Snow
+                            "Temperature: " + header["temperature"] + "°" + header["temperatureUnit"] + "\n" +// Temperature: 33°F
+                            "Wind speed: " + header["windSpeed"] + " " + header["windDirection"] + "\n" + // Wind speed: 5 to 10 mph E
+                            "*" + header["detailedForecast"] + "*") // (Detailed forecast)
+                    }
+
+
+                        let weatherMatch = /^!weather\s(\d+)/g.exec(message.content);
+
+                        const options = {
+                            url: 'https://api.weather.gov/gridpoints/GRR/83,39/forecast',
+                            headers: {
+                                'User-Agent': 'HHS-BOT' // This can be literally anything.
+                            }
+                        };
+                        if (weatherMatch !== null) {
+                            number = weatherMatch[1];
+                            if (number > 13 || number < 0) {
+                                message.channel.send("Please pick a number between 0 and 13.");
+                            } else {
+                                request(options, callback);
+                            }
+                        } else {
+                            number = 0;
+                            request(options, callback);
+                        }
+
+                } catch {
+                    message.channel.send("There was an issue getting weather data. Try again later.");
+                    console.log(e);
+                }
+        }
     }
 });
 
@@ -254,8 +336,8 @@ function levenshtein(str1, str2) { // Courtesy of bindiego on GitHub. Modified.
 
     for (j = 1; j <= n; j++) {
         for (i = 1; i <= m; i++) {
-            if (str1[i-1] === str2[j-1]) d[i][j] = d[i - 1][j - 1];
-            else d[i][j] = Math.min(d[i-1][j], d[i][j-1], d[i-1][j-1]) + 1;
+            if (str1[i - 1] === str2[j - 1]) d[i][j] = d[i - 1][j - 1];
+            else d[i][j] = Math.min(d[i - 1][j], d[i][j - 1], d[i - 1][j - 1]) + 1;
         }
     }
     return d[m][n];
@@ -338,7 +420,7 @@ function replaceAliasesAndMistakes(simplifiedUserClasses, context) {
                     }
                 }
             }
-            }
+        }
 
     }
     return replaced;
@@ -417,7 +499,7 @@ function replaceAliasesAndMistakesForFun(simplifiedUserClasses, context) {
         }
 
     }
-    context.channel.send(replaced[0] + " : " + (lowestDistanceTarget ));
+    context.channel.send(replaced[0] + " : " + (lowestDistanceTarget));
 }
 
 function timeStamp() {
