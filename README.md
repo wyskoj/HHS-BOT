@@ -35,7 +35,7 @@ The following is a list of all the currently supported commands (excluding testi
 
 **`!website`** - Sends the message: `https://haslett.k12.mi.us/hhs`
 
-**`!snowday`** - Displays data from the [snowday calculator website](view-source:https://www.snowdaycalculator.com/prediction.php?zipcode=48840&snowdays=9&extra=0&). It looks at line 1775 and formats the number accordingly.
+**`!snowday`** - Displays data from the source code of the [snowday calculator website](https://www.snowdaycalculator.com/prediction.php?zipcode=48840&snowdays=9&extra=0&). It looks at line 1775 and formats the number accordingly.
 
 * If the prediction is < 0: Display `Limited %`
 * Else: Display `n %`
