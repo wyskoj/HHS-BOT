@@ -526,4 +526,5 @@ function timeStamp() {
 
 }
 
-client.login('NTM5NTI1Nzg1Mzk2OTY5NDcz.DzDp_Q.b8o1LH841zdpIL3-PGkG8JCClq8');
+let clientID = fs.readFileSync('client.id');
+client.login(clientID.toString());
