@@ -211,6 +211,7 @@ client.on('message', function (message) {
                     let date = new Date(); // Store the current time
                     let year = date.getFullYear().toString(); // Define the year as a string
                     let month = date.getMonth() + 1; // Define the month as a string (add 1 because Jan is 0)
+                    let thisDate = date.getDate();
 
                     /* Prepend a 0 is the month is only 1 digit long */
                     let goodMonth = "";
@@ -221,7 +222,6 @@ client.on('message', function (message) {
                     }
 
                     /* Calculate tomorrow's date, if after 7 AM. Otherwise, Calculate today's date. */
-                    let thisDate;
                     if (date.getHours() >= 7) { // If after 7 AM, do tomorrow's prediction
                         thisDate = date.getDate();
                         thisDate += 1;
@@ -230,8 +230,14 @@ client.on('message', function (message) {
                         thisDate = date.getDate().toString();
                     }
 
+                    let thisDateString = "";
+                    /* Prepend a 0 is the month is only 1 digit long */
+                    if (thisDate.length === 1) {
+                        thisDateString = "0" + thisDate;
+                    }
+
                     /* Concatenate the full date with numbers (e.g., 20190212) */
-                    let fullDate = year + goodMonth + thisDate;
+                    let fullDate = year + goodMonth + thisDateString;
 
                     /* Regex */
                     let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (-?\\d+\\.\\d+)");
@@ -241,7 +247,7 @@ client.on('message', function (message) {
                         if (match.length < 2) {
                             message.channel.send("No snow day prediction.");
                         } else if (parseInt(match[1]) <= 0) {
-                            message.channel.send("There is a Limited % of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com.");
+                            message.channel.send("There is a Limited % of a snow day on " + goodMonth + "/" + thisDateString + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com.");
                         } else {
                             message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
                         }
