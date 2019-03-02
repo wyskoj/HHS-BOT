@@ -292,19 +292,7 @@ client.on('message', function (message) {
         }
     }
 
-    if (message.author.id === "314889189856378882") {
-        let simonMessage = message.content.toLowerCase().replace(/[^\w\s]/g, " ")/*remove non-alpha chars*/.replace(/\s{2,}/g, " ")/*remove 2+ spaces */;
-        if (simonMessage.indexOf("dont vote for me") !== -1 || simonMessage.indexOf("dont vote me") !== -1 || simonMessage.indexOf("dont vote simon") !== - 1 || simonMessage.indexOf("dont vote for simon") !== -1
-        ||  simonMessage.indexOf("do not vote for me") !== -1 || simonMessage.indexOf("do not vote me") !== -1 || simonMessage.indexOf("do not vote simon") !== - 1 || simonMessage.indexOf("do not vote for simon") !== -1) {
-            message.channel.send("Yes.");
-        } else if (simonMessage.indexOf("vote for me") !== -1 || simonMessage.indexOf("vote me") !== -1 || simonMessage.indexOf("vote simon") !== - 1 || simonMessage.indexOf("vote for simon") !== -1) {
-            message.channel.send("No.");
-        }
-
-        if (message.content.trim() === "?") {
-            message.channel.send("‽");
-        }
-    }
+    
 });
 
 function getAllClassesNamesAlphabetSorted(context) {
