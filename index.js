@@ -252,7 +252,7 @@ client.on('message', function (message) {
                             message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
                         }
                     } else {
-                        message.channel.send("No snow day prediction.");
+                        message.channel.send("fuck off");
                     }
 
                 });
