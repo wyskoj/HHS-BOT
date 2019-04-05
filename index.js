@@ -12,6 +12,17 @@ client.on('ready', () => {
 client.on('error', console.error);
 
 client.on('message', function (message) {
+
+    /* Swear filter */
+    let content = message.content;
+    for (let i = 0; i < swearWords.length; i++) {
+        if (findKeyword(content, swearWords[i], 0) !== -1) {
+            message.delete();
+            break;
+        }
+    }
+
+    /* Commands */
     if (/^!\S+/g.test(message.content)) {
         let match = /^!(\S+)/g.exec(message.content); // Finds the command after ! ("!test blah" returns "test")
         let command = match[1];
@@ -260,6 +271,7 @@ client.on('message', function (message) {
             case 'weather':
                 try {
                     let number;
+
                     function callback(error, response, body) {
 
                         let header = JSON.parse(body)["properties"]["periods"][number];
@@ -271,25 +283,25 @@ client.on('message', function (message) {
                     }
 
 
-                        let weatherMatch = /^!weather\s(\d+)/g.exec(message.content);
+                    let weatherMatch = /^!weather\s(\d+)/g.exec(message.content);
 
-                        const options = {
-                            url: 'https://api.weather.gov/gridpoints/GRR/83,39/forecast',
-                            headers: {
-                                'User-Agent': 'HHS-BOT' // This can be literally anything.
-                            }
-                        };
-                        if (weatherMatch !== null) {
-                            number = weatherMatch[1];
-                            if (number > 13 || number < 0) {
-                                message.channel.send("Please pick a number between 0 and 13.");
-                            } else {
-                                request(options, callback);
-                            }
+                    const options = {
+                        url: 'https://api.weather.gov/gridpoints/GRR/83,39/forecast',
+                        headers: {
+                            'User-Agent': 'HHS-BOT' // This can be literally anything.
+                        }
+                    };
+                    if (weatherMatch !== null) {
+                        number = weatherMatch[1];
+                        if (number > 13 || number < 0) {
+                            message.channel.send("Please pick a number between 0 and 13.");
                         } else {
-                            number = 0;
                             request(options, callback);
                         }
+                    } else {
+                        number = 0;
+                        request(options, callback);
+                    }
 
                 } catch {
                     message.channel.send("There was an issue getting weather data. Try again later.");
@@ -298,7 +310,7 @@ client.on('message', function (message) {
         }
     }
 
-    
+
 });
 
 function getAllClassesNamesAlphabetSorted(context) {
@@ -517,8 +529,75 @@ function replaceAliasesAndMistakesForFun(simplifiedUserClasses, context) {
 
 function timeStamp() {
     return '[' + new Date().toString().split(' G')[0] + ']';
+}
 
+function findKeyword(content, goal) {
+    let phrase = content.trim();
+    let position = phrase.toLowerCase().indexOf(goal.toLowerCase(), 0);
+
+    // Refinement--make sure the goal isn't part of a word
+    while (position >= 0) {
+        // Find the string of length 1 before and after the word
+        let before = " ";
+        let after = " ";
+        if (position > 0) {
+            before = phrase.substring(position - 1, position).toLowerCase();
+        }
+        if (position + goal.length() < phrase.length()) {
+            after = phrase.substring(
+                position + goal.length(),
+                position + goal.length() + 1)
+                .toLowerCase();
+        }
+
+        // If before and after aren't letters, we've found the goal word
+        if (((before.compareTo("a") < 0) || (before.compareTo("z") > 0)) // before is not a letter
+            && ((after.compareTo("a") < 0) || (after.compareTo("z") > 0))) {
+            return position;
+        }
+
+        // The last position didn't work, so let's find
+        // the next, if there is one.
+        position = phrase.indexOf(goal.toLowerCase(), position + 1);
+    }
+
+    return -1;
+}
+
+
+function findKeyword(statement, goal, startPos) {
+    let phrase = statement.trim();
+    // The only change to incorporate the startPos is in the line below
+    let position = phrase.toLowerCase().indexOf(goal.toLowerCase(), startPos);
+
+    // Refinement--make sure the goal isn't part of a word
+    while (position >= 0) {
+        // Find the string of length 1 before and after the word
+        let before = " ";
+        let after = " ";
+        if (position > 0) {
+            before = phrase.substring(position - 1, position).toLowerCase();
+        }
+        if (position + goal.length < phrase.length) {
+            after = phrase.substring(
+                position + goal.length,
+                position + goal.length + 1)
+                .toLowerCase();
+        }
+
+        // If before and after aren't letters, we've found the goal word
+        if ( /[a-z]/g.exec(before) === null && /[a-z]/g.exec(after) === null) {
+            return position;
+        }
+
+        // The last position didn't work, so let's find
+        // the next, if there is one.
+        position = phrase.indexOf(goal.toLowerCase(), position + 1);
+    }
+
+    return -1;
 }
 
 let clientID = fs.readFileSync('client.id');
+let swearWords = fs.readFileSync('swearWords.db').toString().split("\r\n");
 client.login(clientID.toString());
