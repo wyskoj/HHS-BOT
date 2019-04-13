@@ -313,6 +313,11 @@ client.on('message', function (message) {
 
 });
 
+client.on('guildMemberRemove', function(member) {
+    let botErrorChannel = member.guild.channels.get("541061854969987078");
+    botErrorChannel.send(timeStamp() + " " + member.user.username + " has left!");
+});
+
 function getAllClassesNamesAlphabetSorted(context) {
     let classes = [];
     let botRolePosition = context.guild.roles.find(r => r.name === "Bot").position;
