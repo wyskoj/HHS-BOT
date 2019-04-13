@@ -1,5 +1,9 @@
 # HHS-BOT
-
+<html>
+<img src="https://img.shields.io/github/repo-size/wyskoj/HHS-BOT.svg" />
+<img src="https://img.shields.io/discord/526516818375082032.svg" />
+ <hr>
+ </html>
 To start HHS-BOT you will need to have Node and npm installed.
 Enter the repository contents into a folder. Then, run the following commands in this folder.
 
