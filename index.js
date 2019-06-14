@@ -251,7 +251,7 @@ client.on('message', function (message) {
                     let fullDate = year + goodMonth + thisDateString;
 
                     /* Regex */
-                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (-?\\d+\\.\\d+)");
+                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (.+);");
                     let match = getPrediction.exec(body);
 
                     if (match !== null) {
