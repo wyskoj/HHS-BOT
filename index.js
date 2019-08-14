@@ -307,13 +307,48 @@ client.on('message', function (message) {
                     message.channel.send("There was an issue getting weather data. Try again later.");
                     console.log(e);
                 }
+                break;
+
+            case 'lunch':
+                try {
+                    let validLetters = ["a", "b", "clear"];
+                    let user = /!lunch (\w+)/g.exec(message.content)[1].toLocaleLowerCase();
+
+                    if (validLetters.indexOf(user) == -1) {
+                        message.channel.send("Command usage: `!lunch [A|B|clear]`")
+                    } else {
+                        let aLunch = message.guild.roles.find(r => r.name === "A Lunch");
+                        let bLunch = message.guild.roles.find(r => r.name === "B Lunch");
+
+                        if (message.member.roles.has(aLunch.id)) {
+                            message.member.removeRole(aLunch);
+                        }
+                        if (message.member.roles.has(bLunch.id)) {
+                            message.member.removeRole(bLunch);
+                        }
+
+                        if (user == "a") {
+                            message.member.addRole(aLunch);
+                            message.reply("you have been assigned to A Lunch.");
+                        } else if (user == "b"){
+                            message.member.addRole(bLunch);
+                            message.reply("you have been assigned to B Lunch.");
+                        } else if (user == "clear") {
+                            message.reply("you have been assigned to no lunch.");
+                        }
+                    }
+                } catch (e) {
+                    message.channel.send("Command usage: `!lunch [A|B|clear]`")
+                }
+
+                break;
         }
     }
 
 
 });
 
-client.on('guildMemberRemove', function(member) {
+client.on('guildMemberRemove', function (member) {
     let botErrorChannel = member.guild.channels.get("541061854969987078");
     botErrorChannel.send(timeStamp() + " " + member.user.username + " has left!");
 });
@@ -591,7 +626,7 @@ function findKeyword(statement, goal, startPos) {
         }
 
         // If before and after aren't letters, we've found the goal word
-        if ( /[a-z]/g.exec(before) === null && /[a-z]/g.exec(after) === null) {
+        if (/[a-z]/g.exec(before) === null && /[a-z]/g.exec(after) === null) {
             return position;
         }
 
