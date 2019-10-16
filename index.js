@@ -251,7 +251,7 @@ client.on('message', function (message) {
                     let fullDate = year + goodMonth + thisDateString;
 
                     /* Regex */
-                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (.+);");
+                    let getPrediction = new RegExp("theChance\\[" + fullDate + "\\] = (-?.+);");
                     let match = getPrediction.exec(body);
 
                     if (match !== null) {
@@ -263,7 +263,7 @@ client.on('message', function (message) {
                             message.channel.send("There is a " + Math.round(parseInt(match[1])).toString() + "% of a snow day on " + goodMonth + "/" + thisDate + "/" + year + " with " + amountOfSnowDays + " previous snow days, according to https://www.snowdaycalculator.com");
                         }
                     } else {
-                        message.channel.send("frigg off");
+                        message.channel.send("No snow day prediction.");
                     }
 
                 });
