@@ -245,6 +245,8 @@ client.on('message', function (message) {
                     /* Prepend a 0 is the month is only 1 digit long */
                     if (thisDate.length === 1) {
                         thisDateString = "0" + thisDate;
+                    } else {
+                        thisDateString = thisDate;
                     }
 
                     /* Concatenate the full date with numbers (e.g., 20190212) */
